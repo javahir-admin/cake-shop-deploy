@@ -1,16 +1,18 @@
-```yaml
+```yaml id="p6d1tr"
 name: .NET CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -20,10 +22,10 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Build
+      - name: Build project
         run: dotnet build --configuration Release
 
-      - name: Publish
+      - name: Publish project
         run: dotnet publish -c Release -o ./publish
 
       - name: Deploy to AWS
@@ -37,7 +39,7 @@ jobs:
           echo "$EC2_KEY" > ~/.ssh/key.pem
           chmod 600 ~/.ssh/key.pem
 
-          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
 
           ssh -i ~/.ssh/key.pem $EC2_USER@$EC2_HOST "mkdir -p /home/$EC2_USER/app"
 
