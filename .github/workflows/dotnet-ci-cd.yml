@@ -1,50 +1,61 @@
-```yaml id="w4k1po"
 name: .NET CI/CD
-
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  build-and-deploy:
+  build-and-test:
     runs-on: ubuntu-latest
 
-    steps:
+  steps:
     - uses: actions/checkout@v4
-
+    
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
-
-    - name: Restore
+    
+    - name: Restore dependencies
       run: dotnet restore
-
+    
     - name: Build
-      run: dotnet build --configuration Release
+      run: dotnet build --no-restore --configuration Release
+    
+    - name: Run Tests
+      run: dotnet test --no-build --verbosity normal
 
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
     - name: Publish
       run: dotnet publish -c Release -o ./publish
-
+    
     - name: Deploy to AWS
       env:
         EC2_HOST: ${{ secrets.EC2_HOST }}
         EC2_USER: ${{ secrets.EC2_USER }}
         EC2_KEY: ${{ secrets.EC2_KEY }}
-
       run: |
         mkdir -p ~/.ssh
         echo "$EC2_KEY" > ~/.ssh/key.pem
         chmod 600 ~/.ssh/key.pem
-
         ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts 2>/dev/null
-
         ssh -i ~/.ssh/key.pem $EC2_USER@$EC2_HOST "mkdir -p /home/$EC2_USER/app"
-
         scp -i ~/.ssh/key.pem -r ./publish $EC2_USER@$EC2_HOST:/home/$EC2_USER/app/
-
-        ssh -i ~/.ssh/key.pem $EC2_USER@$EC2_HOST "pkill dotnet || true"
-
-        ssh -i ~/.ssh/key.pem $EC2_USER@$EC2_HOST "cd /home/$EC2_USER/app/publish && nohup dotnet CakeShop.Web.dll > app.log 2>&1 &"
-```
+        ssh -i ~/.ssh/key.pem $EC2_USER@$EC2_HOST "cd /home/$EC2_USER/app/publish && screen -dm dotnet *.dll"
 
