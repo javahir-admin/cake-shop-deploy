@@ -32,13 +32,8 @@ module.exports = function (env) {
 
   
     if (isProd) {
-        config.devtool = 'source-map';
-        config.plugins = config.plugins.concat([
-            new webpack.optimize.UglifyJsPlugin({
-                sourceMap: false
-            })
-        ]);
-    }
+    config.devtool = 'source-map';
+}
 
     return config;
 };
