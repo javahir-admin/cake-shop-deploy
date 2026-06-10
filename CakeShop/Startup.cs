@@ -64,7 +64,6 @@ namespace CakeShop
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseBrowserLink();
             }
 
             app.UseStatusCodePages();
